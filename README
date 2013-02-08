@@ -3,6 +3,13 @@ ARDrone Proxy
 
 This code enables the use of an on-board computer controlling the robot through the serial port of the ARDrone, instead of remotely (off-board) through wifi.
 
+COMPILATION
+===========
+
+This code requires the use of a gcc/g++ ARM cross-compiler. Edit the CMakeLists.txt file according to your installation. Mainly: compiler executable names and boost location.
+You need the Boost library to be compiled for ARM as a dependency. You can compile a single threaded version to skip the pthread dependency. You will still require bzlib and zlib to be compiled for boost.
+I'm using: Sourcery CodeBench Lite 2011.09-70 4.6.1, but you most likely will be able to use other compilers.
+
 INSTALLATION
 ============
 
