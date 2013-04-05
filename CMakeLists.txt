@@ -18,4 +18,11 @@ add_executable(ardrone-proxy ardrone-proxy.cpp serial.cpp network.cpp protocol.c
 add_dependencies(ardrone-proxy mavlink_headers)
 target_link_libraries(ardrone-proxy boost_system)
 
+add_custom_target(upload
+  COMMAND curl -T ardrone-proxy ftp://192.168.1.1  
+  DEPENDS ardrone-proxy
+  WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+)
+
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -pthread -Wfatal-errors")

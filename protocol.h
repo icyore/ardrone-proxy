@@ -13,7 +13,7 @@ namespace arproxy {
       void network2serial(const std::vector<char>& network_packet, size_t network_bytes, std::vector<char>& serial_packet, size_t& serial_bytes);
       
       std::string prepare_network_msg(const std::string& msg, const std::string& parameters = std::string());
-      int sequence_number;
+      uint32_t sequence_number;
   };
 }
 

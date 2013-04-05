@@ -35,12 +35,14 @@ void arproxy::Serial::process(void) {
 
 void arproxy::Serial::receive_handler(const boost::system::error_code& error, size_t bytes)
 {
+  cout << "received " << bytes << " bytes from serial" << endl;
   received_bytes = bytes;
   receiving = false;
 }
 
 bool arproxy::Serial::receive(std::vector<char>& packet, size_t& bytes) {
   if (receiving) return false;
+  cout << "copying serial data to receive buffer" << endl;
   std::copy(receive_buffer.begin(), receive_buffer.begin() + received_bytes, packet.begin());
   bytes = received_bytes;
   receiving = true;
@@ -60,6 +62,7 @@ bool arproxy::Serial::send(const vector<char>& packet, size_t bytes) {
 
 
 void arproxy::Serial::send_handler(const boost::system::error_code& error, size_t bytes) {
+  cout << "sent " << bytes << " bytes" << endl;
   sending = false;
 }
 

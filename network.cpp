@@ -5,18 +5,20 @@ using boost::asio::ip::address;
 using namespace std;
 
 #define ARDRONE_MAX_MESSAGE_SIZE 2048
+#define ARDRONE_AT_PORT 5556
+#define ARDRONE_NAV_PORT 5554
 
 arproxy::Network::Network(void) : at_socket(NULL), nav_socket(NULL) {
   address drone_ip = address::from_string("192.168.1.1");
-  at_receiver_endpoint = udp::endpoint(drone_ip, 5556);
+  at_receiver_endpoint = udp::endpoint(drone_ip, ARDRONE_AT_PORT);
   at_socket = new udp::socket(io_service);
   at_socket->open(udp::v4());
-  at_socket->bind(udp::endpoint(drone_ip, 15556));
+  at_socket->bind(udp::endpoint(drone_ip, ARDRONE_AT_PORT + 10000));
   
-  nav_receiver_endpoint = udp::endpoint(drone_ip, 5554);
+  nav_receiver_endpoint = udp::endpoint(drone_ip, ARDRONE_NAV_PORT);
   nav_socket = new udp::socket(io_service);
   nav_socket->open(udp::v4());
-  nav_socket->bind(udp::endpoint(drone_ip, 15554));
+  nav_socket->bind(udp::endpoint(drone_ip, ARDRONE_NAV_PORT + 10000));
   
   bytes_received = 0;
   receiving = true;
@@ -27,7 +29,7 @@ arproxy::Network::Network(void) : at_socket(NULL), nav_socket(NULL) {
   send_buffer.resize(ARDRONE_MAX_MESSAGE_SIZE);
   sending = false; // the followings sends are blocking
   int32_t one = 1;
-  nav_socket->send_to(boost::asio::buffer((char*)&one, 4), nav_receiver_endpoint);
+  nav_socket->send_to(boost::asio::buffer((char*)&one, sizeof(int32_t)), nav_receiver_endpoint);
 }
 
 void arproxy::Network::process(void) {
@@ -38,6 +40,7 @@ void arproxy::Network::process(void) {
 bool arproxy::Network::send(const std::vector<char>& packet, size_t bytes) {
   if (sending) return false; // discard
   std::copy(packet.begin(), packet.begin() + bytes, send_buffer.begin());
+  cout << "msg: " << std::string(&send_buffer[0], bytes) << endl;
   sending = true;
   at_socket->async_send_to(boost::asio::buffer(send_buffer, bytes), at_receiver_endpoint, boost::bind(&Network::send_handler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
   
@@ -56,6 +59,8 @@ bool arproxy::Network::receive(std::vector<char>& packet, size_t& bytes) {
 }
 
 void arproxy::Network::send_handler(const boost::system::error_code& error, size_t bytes) {
+  if (!error) cout << "sent " << bytes << " bytes to nework" << endl;
+  else cout << "error sending network data" << endl;
   sending = false;
 }
 
