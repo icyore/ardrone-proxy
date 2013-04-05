@@ -1,9 +1,10 @@
 #include <boost/bind.hpp>
 #include <iostream>
+#include "mavlink/ardrone/mavlink.h"
 #include "serial.h"
 using namespace std;
 
-arproxy::Serial::Serial(void) : port(NULL), receive_buffer(1024) {
+arproxy::Serial::Serial(void) : port(NULL) {
   port = new boost::asio::serial_port(io, "/dev/ttyPA0");
   port->set_option(boost::asio::serial_port::baud_rate(115200));
   port->set_option(boost::asio::serial_port::character_size(8));
@@ -13,8 +14,14 @@ arproxy::Serial::Serial(void) : port(NULL), receive_buffer(1024) {
   
   receiving = true;
   sending = false;
-  send_buffer.resize(2048);
-  boost::asio::async_read_until(*port, receive_buffer, '\n', boost::bind(&Serial::receive_handler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+  send_buffer.resize(MAVLINK_MAX_PACKET_LEN);
+  receive_buffer.resize(MAVLINK_MAX_PACKET_LEN);
+  
+  // issue first receive
+  received_bytes = 0;
+  receiving = true;
+  port->async_read_some(boost::asio::buffer(receive_buffer, MAVLINK_MAX_PACKET_LEN),
+    boost::bind(&Serial::receive_handler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
 }
 
 arproxy::Serial::~Serial(void) {
@@ -26,28 +33,31 @@ void arproxy::Serial::process(void) {
   if (io.stopped()) io.reset();
 }
 
-void arproxy::Serial::send(const std::vector<char>& data, size_t bytes) {
-  if (sending) { cout << "discarded" << endl; return; } // discards data
-  
-  sending = true;
-  send_buffer = data;
-  boost::asio::async_write(*port, boost::asio::buffer(send_buffer, bytes), boost::bind(&Serial::send_handler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+void arproxy::Serial::receive_handler(const boost::system::error_code& error, size_t bytes)
+{
+  received_bytes = bytes;
+  receiving = false;
 }
 
-bool arproxy::Serial::receive(std::string& msg) {
+bool arproxy::Serial::receive(std::vector<char>& packet, size_t& bytes) {
   if (receiving) return false;
-  msg = received_msg;  
+  std::copy(receive_buffer.begin(), receive_buffer.begin() + received_bytes, packet.begin());
+  bytes = received_bytes;
   receiving = true;
-  boost::asio::async_read_until(*port, receive_buffer, '\n', boost::bind(&Serial::receive_handler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+  port->async_read_some(boost::asio::buffer(receive_buffer, MAVLINK_MAX_PACKET_LEN),
+    boost::bind(&Serial::receive_handler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
   return true;
 }
 
-void arproxy::Serial::receive_handler(const boost::system::error_code& error, size_t bytes) {
-  cout << "[SERIAL] received msg of " << bytes << " bytes" << endl;
-  std::istream is(&receive_buffer);
-  std::getline(is, received_msg);
-  receiving = false;
+bool arproxy::Serial::send(const vector<char>& packet, size_t bytes) {
+  if (sending) { cout << "discarded" << endl; return false; } // discards data
+  std::copy(packet.begin(), packet.begin() + bytes, send_buffer.begin());
+  sending = true;
+  boost::asio::async_write(*port, boost::asio::buffer(send_buffer, bytes), boost::bind(&Serial::send_handler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+  return true;
 }
+
+
 
 void arproxy::Serial::send_handler(const boost::system::error_code& error, size_t bytes) {
   sending = false;

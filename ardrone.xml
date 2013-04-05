@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<mavlink>
+	<include>./common.xml</include>
+  <messages>
+		<message id="150" name="SET_LEDS">
+			<description>This message permits control of LED animations on the ARDrone.</description>
+			<field type="uint16_t" name="animation">The animation number.</field>
+			<field type="float" name="frequency">The frecuency for the animation.</field>
+			<field type="uint16_t" name="duration">Duration of the animation.</field>
+		</message>
+    <message id="151" name="TAKEOFF_LAND">
+      <description>Takeoff/land sequence</description>
+      <field type="uint8_t" name="action">0: land, 1: takeoff</field>
+    </message>
+    <message id="152" name="SET_PCMD">
+      <description>Send progressive commands - makes the drone move (translate/rotate)</description>
+      <field type="float" name="roll">Roll (left-right tilt) angle [-1,1]</field>
+      <field type="float" name="pitch">Pitch (front-back tilt) angle [-1,1]</field>
+      <field type="float" name="vspeed">Vertical speed [-1,1]</field>
+      <field type="float" name="yaw">Angular speed [-1,1]</field>
+    </message>
+    <message id="153" name="HOVER">
+      <description>This will make the drone hold its position. Alternatively, if a SET_PCMD was previously sent
+      affecting angular speed (yaw), you can make the drone hover while turning</description>
+      <field type="uint8_t" name="stop">1: Stop the drone before hovering, 0: keep angular motion before hovering</field>
+    </message>
+	</messages>
+</mavlink>

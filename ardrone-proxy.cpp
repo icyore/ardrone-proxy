@@ -7,6 +7,7 @@
 #include <sstream>
 #include "serial.h"
 #include "network.h"
+#include "protocol.h"
 using namespace std;
 
 bool stop = false;
@@ -14,42 +15,36 @@ void interrupt(int s) {
   stop = true;
 }
 
-int main(void) {
+int main(void)
+{
   cout << "Starting ardrone-proxy" << endl;
   signal(SIGINT, interrupt);
 
   arproxy::Serial serial;
   arproxy::Network network;
-  /*int seq_num = 1;
-  ostringstream ostr;
-  ostr << "AT*LED=" << seq_num << ",9,1065353216,5\r" << endl;
-  string str(ostr.str());
-  s->send_to(boost::asio::buffer(str.c_str(), str.size()), receiver_endpoint);*/
-    
+  
+  size_t buffer_size = std::max(serial.receive_buffer.size(), network.receive_buffer.size());
+  vector<char> recv_buffer(buffer_size), send_buffer(buffer_size);
+  
+  arproxy::ProtocolHandler protocol_handler;
   while(!stop) {
     serial.process();
     network.process();
-    
-    string msg;
-    if (serial.receive(msg)) {
-      //cout << "received: " << msg.size() << " bytes" << endl;
-      network.send(msg);
+        
+    size_t recv_bytes, send_bytes;
+    if (serial.receive(recv_buffer, recv_bytes)) {
+      protocol_handler.serial2network(recv_buffer, recv_bytes, send_buffer, send_bytes);
+      if (!network.send(send_buffer, send_bytes)) // TODO: may discard!
+        cerr << "outbound network message of " << send_bytes << " dropped" << endl; 
     }
-    //else cout << "nothing received" << endl;
     
-    /*ostringstream ostr;
-    ostr << "AT*COMWDG=" << seq_num << "\r";
-    //seq_num++;
-    float f = 4;
-    //ostr << "AT*LED=" << seq_num << ",1,1065353216,5\r" << endl;
-    //3," << *(int32_t*)(&f) << ",1,100\r";
+    if (network.receive(recv_buffer, recv_bytes)) {
+      protocol_handler.network2serial(recv_buffer, recv_bytes, send_buffer, send_bytes);
+      if (!serial.send(send_buffer, send_bytes))
+        cerr << "outbound serial message of " << send_bytes << " dropped" << endl;
+    }
     
-    cout << "sending" << endl;
-    str = ostr.str();
-    s->send_to(boost::asio::buffer(str.c_str(), str.size()), receiver_endpoint);
-    cout << "sent" << endl;
-    seq_num++;*/
-    usleep(1000);
+    usleep(1000); // TODO: tune
   }
   
   return 0;
