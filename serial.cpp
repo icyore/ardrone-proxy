@@ -1,5 +1,6 @@
 #include <boost/bind.hpp>
 #include <iostream>
+#include <termios.h>
 #include "mavlink/ardrone/mavlink.h"
 #include "serial.h"
 using namespace std;
@@ -16,6 +17,10 @@ arproxy::Serial::Serial(void) : port(NULL) {
   sending = false;
   send_buffer.resize(MAVLINK_MAX_PACKET_LEN);
   receive_buffer.resize(MAVLINK_MAX_PACKET_LEN);
+  
+  // flush data from previous runs (linux buffers data even if port is not open)
+  usleep(200000);
+  tcflush(port->native(), TCIOFLUSH);
   
   // issue first receive
   received_bytes = 0;
