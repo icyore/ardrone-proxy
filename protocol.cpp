@@ -55,29 +55,6 @@ void arproxy::ProtocolHandler::serial2network(const std::vector<char>& serial_pa
           network_str += prepare_network_msg("AT*REF", boost::lexical_cast<std::string>(bits));
         } 
         break;
-        case MAVLINK_MSG_ID_HOVER:
-        {
-          cout << "received hover" << endl;
-          mavlink_hover_t hover_msg;
-          mavlink_msg_hover_decode(&msg, &hover_msg);
-          float zero = 0;
-          std::string zero_str = boost::lexical_cast<std::string>(*(int32_t*)(&zero));
-          uint32_t flags;
-          std::string flag_str;
-
-          // send all zeros
-          if (hover_msg.stop) {
-            flags = 1;
-            flag_str = boost::lexical_cast<std::string>(flags);
-            network_str += prepare_network_msg("AT*PCMD", flag_str + "," + zero_str + "," + zero_str + "," + zero_str + "," + zero_str);
-          }
-          
-          // enable hover
-          flags = 0;
-          flag_str = boost::lexical_cast<std::string>(flags);
-          network_str += prepare_network_msg("AT*PCMD", flag_str + "," + zero_str + "," + zero_str + "," + zero_str + "," + zero_str);          
-        }
-        break;
         case MAVLINK_MSG_ID_SET_PCMD:
         {
           cout << "received pcmd" << endl;
@@ -87,7 +64,7 @@ void arproxy::ProtocolHandler::serial2network(const std::vector<char>& serial_pa
           std::string pitch_str = boost::lexical_cast<std::string>(*(uint32_t*)(&set_pcmd_msg.pitch));
           std::string vspeed_str = boost::lexical_cast<std::string>(*(uint32_t*)(&set_pcmd_msg.vspeed));
           std::string yaw_str = boost::lexical_cast<std::string>(*(uint32_t*)(&set_pcmd_msg.yaw));
-          uint32_t flags = 1;
+          uint32_t flags = set_pcmd_msg.hover;
           std::string flag_str = boost::lexical_cast<std::string>(flags);
           network_str += prepare_network_msg("AT*PCMD", flag_str + "," + roll_str + "," + pitch_str + "," + vspeed_str + "," + yaw_str);          
         }
