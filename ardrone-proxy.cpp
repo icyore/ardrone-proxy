@@ -17,6 +17,7 @@ void interrupt(int s) {
 }
 
 void daemonize(void);
+void set_iptables(void);
 
 int main(int argc, char** argv)
 {
@@ -40,6 +41,8 @@ int main(int argc, char** argv)
   
   size_t buffer_size = std::max(serial.receive_buffer.size(), network.receive_buffer.size());
   vector<char> recv_buffer(buffer_size), send_buffer(buffer_size);
+  
+  set_iptables();
   
   cout << "Server started" << endl;
   arproxy::ProtocolHandler protocol_handler;
@@ -93,4 +96,12 @@ void daemonize(void)
     dup2(fd, STDERR_FILENO);  
     if (fd > 2) close(fd);  
   }
+}
+
+void set_iptables(void) {
+  system("iptables -t nat -F"); 
+  system("iptables -t nat -A POSTROUTING -p UDP --sport 15554 -j SNAT --to 192.168.1.254:5554");
+  system("iptables -t nat -A PREROUTING -p UDP -d 192.168.1.254 --dport 5554 -j DNAT --to 192.168.1.1:15554");
+  system("iptables -t nat -A POSTROUTING -p UDP --sport 15556 -j SNAT --to 192.168.1.254:5556");
+  system("iptables -t nat -A PREROUTING -p UDP -d 192.168.1.254 --dport 5556 -j DNAT --to 192.168.1.1:15556");
 }
