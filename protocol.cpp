@@ -4,7 +4,7 @@
 #include "protocol.h"
 using namespace std;
 
-arproxy::ProtocolHandler::ProtocolHandler(void) : sequence_number(0) {}
+arproxy::ProtocolHandler::ProtocolHandler(void) : sequence_number(0), navdata_sequence_number(0) {}
 
 /**
  * TODO: check that maximum message size is not exceeded before appending sub-message
@@ -69,6 +69,14 @@ void arproxy::ProtocolHandler::serial2network(const std::vector<char>& serial_pa
           network_str += prepare_network_msg("AT*PCMD", flag_str + "," + roll_str + "," + pitch_str + "," + vspeed_str + "," + yaw_str);          
         }
         break;
+        case MAVLINK_MSG_ID_ENABLE_NAVDATA:
+        {
+          cout << "received enable navdata" << endl;
+          mavlink_enable_navdata_t enable_navdata;
+          mavlink_msg_enable_navdata_decode(&msg, &enable_navdata);
+          network_str += prepare_network_msg("AT*CONFIG",std::string("\"general:navdata_demo\",") + (enable_navdata.enable ? "\"TRUE\"" : "\"FALSE\""));
+        }
+        break;
         default:
           cout << "received unhandled message" << endl;
         break;
@@ -86,7 +94,45 @@ void arproxy::ProtocolHandler::serial2network(const std::vector<char>& serial_pa
 void arproxy::ProtocolHandler::network2serial(const std::vector<char>& network_packet, size_t network_bytes, 
   std::vector<char>& serial_packet, size_t& serial_bytes)
 {
-  // TODO: write
+  navdata_t* navdata = (navdata_t*)&network_packet[0];
+  if (navdata->header == NAVDATA_HEADER) {
+    if (navdata->mykonos_state & MYKONOS_COM_WATCHDOG_MASK) navdata_sequence_number = 0; 
+    
+    if ((navdata->mykonos_state & MYKONOS_NAVDATA_DEMO_MASK) && navdata->sequence > navdata_sequence_number) {
+      navdata_demo_t demo_data;
+      navdata_cks_t cks_data; 
+      navdata_unpack(navdata, &demo_data, &cks_data);
+      
+      // compute checksum
+      uint32_t cks = 0;
+      for(uint i = 0; i < network_bytes - sizeof(navdata_cks_t); i++ )
+        cks = (uint32_t)network_packet[i];      
+      if (cks != cks_data.cks) { cout << "wrong checksum, dropping packet" << endl; return; }
+      
+      mavlink_message_t msg;
+      mavlink_msg_navdata_pack(0, 0, &msg, /*timestamp,*/ demo_data.vbat_flying_percentage, demo_data.theta, demo_data.phi, demo_data.psi,
+        demo_data.altitude, demo_data.vx, demo_data.vy, demo_data.vz);
+      serial_bytes = mavlink_msg_to_send_buffer((uint8_t*)&serial_packet[0], &msg);  
+    }
+    navdata_sequence_number = navdata->sequence;
+  }
+}
+
+void arproxy::ProtocolHandler::navdata_unpack(const navdata_t* navdata, navdata_demo_t* demo_data, navdata_cks_t* cks_data)
+{
+  navdata_option_t* navdata_option_ptr = (navdata_option_t*)&navdata->options[0];
+  while (true) {
+    if (navdata_option_ptr->size == 0) break;
+    
+    if (navdata_option_ptr->tag == NAVDATA_DEMO_TAG)
+      memcpy(demo_data, navdata_option_ptr->data, navdata_option_ptr->size);
+    else if (navdata_option_ptr->tag == NAVDATA_CKS_TAG) {
+      memcpy(cks_data, navdata_option_ptr->data, navdata_option_ptr->size);
+      break;
+    }
+    
+    navdata_option_ptr = (navdata_option_t*)(navdata_option_ptr->data + navdata_option_ptr->size);
+  }
 }
 
 std::string arproxy::ProtocolHandler::prepare_network_msg(const std::string& msg, const std::string& parameters)

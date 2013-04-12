@@ -20,5 +20,20 @@
       <field type="float" name="vspeed">Vertical speed [-1,1]</field>
       <field type="float" name="yaw">Angular speed [-1,1]</field>
     </message>
+    <message id="153" name="ENABLE_NAVDATA">
+      <description>Enable/disable navdata sending by drone</description>
+      <field type="uint8_t" name="enable">1: enable, 0: disable</field>
+    </message>
+    <message id="154" name="NAVDATA">
+      <description>Navdata information sent by drone</description>
+      <field type="float" name="battery">Battery level of drone</field>
+      <field type="float" name="phi">?</field>
+      <field type="float" name="psi">?</field>
+      <field type="float" name="alpha">?</field>
+      <field type="float" name="altitude">?</field>
+      <field type="float" name="vx">?</field>
+      <field type="float" name="vy">?</field>
+      <field type="float" name="vz">?</field>      
+    </message>
 	</messages>
 </mavlink>
