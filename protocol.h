@@ -17,7 +17,7 @@ namespace arproxy {
       uint32_t sequence_number, navdata_sequence_number;
       
     private:
-      void navdata_unpack(const navdata_t* navdata, navdata_demo_t* demo_data, navdata_cks_t* cks_data);
+      bool navdata_unpack(const navdata_t* navdata, navdata_demo_t* demo_data, navdata_cks_t* cks_data);
   };
 }
 

@@ -40,7 +40,7 @@ void arproxy::Network::process(void) {
 bool arproxy::Network::send(const std::vector<char>& packet, size_t bytes) {
   if (sending) return false; // discard
   std::copy(packet.begin(), packet.begin() + bytes, send_buffer.begin());
-  cout << "msg: " << std::string(&send_buffer[0], bytes) << endl;
+  //cout << "msg: " << std::string(&send_buffer[0], bytes) << endl;
   sending = true;
   at_socket->async_send_to(boost::asio::buffer(send_buffer, bytes), at_receiver_endpoint, boost::bind(&Network::send_handler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
   
@@ -50,8 +50,9 @@ bool arproxy::Network::send(const std::vector<char>& packet, size_t bytes) {
 
 bool arproxy::Network::receive(std::vector<char>& packet, size_t& bytes) {
   if (receiving || bytes_received == 0) return false;
-  std::copy(receive_buffer.begin(), receive_buffer.begin() + bytes, packet.begin());
   bytes = bytes_received;
+  //cout << "copying " << bytes << " bytes to network buffer" << endl;
+  std::copy(receive_buffer.begin(), receive_buffer.begin() + bytes, packet.begin());
   receiving = true;
   nav_socket->async_receive(boost::asio::buffer(receive_buffer, ARDRONE_MAX_MESSAGE_SIZE),
     boost::bind(&Network::receive_handler, this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
@@ -59,8 +60,8 @@ bool arproxy::Network::receive(std::vector<char>& packet, size_t& bytes) {
 }
 
 void arproxy::Network::send_handler(const boost::system::error_code& error, size_t bytes) {
-  if (!error) cout << "sent " << bytes << " bytes to nework" << endl;
-  else cout << "error sending network data" << endl;
+  /*if (!error) cout << "sent " << bytes << " bytes to nework" << endl;
+  else cout << "error sending network data" << endl;*/
   sending = false;
 }
 
@@ -68,8 +69,10 @@ void arproxy::Network::send_handler(const boost::system::error_code& error, size
 void arproxy::Network::receive_handler(const boost::system::error_code& error, size_t bytes) {
   if (error || bytes == 0)
     bytes_received = 0;
-  else
+  else {
+    //cout << "received " << bytes << " from network" << endl;
     bytes_received = bytes;
+  }
 
   receiving = false;  
 }

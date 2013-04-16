@@ -7,13 +7,13 @@ struct navdata_option_t {
     uint16_t tag;
     uint16_t size;
     uint8_t data[];
-};
+} __attribute__ ((packed));
 
 struct navdata_t {
   uint32_t header;
   uint32_t mykonos_state;
   uint32_t sequence;
-  int vision_defined;
+  uint32_t vision_defined;
   navdata_option_t  options[1];
 } __attribute__ ((packed));
 
@@ -64,9 +64,9 @@ typedef struct _navdata_demo_t {
 
     int32_t     altitude;               /*!< UAV's altitude */
 
-    float   vx;                     /*!< UAV's estimated linear velocity */
-    float   vy;                     /*!< UAV's estimated linear velocity */
-    float   vz;                     /*!< UAV's estimated linear velocity */
+    float  vx;                     /*!< UAV's estimated linear velocity */
+    float  vy;                     /*!< UAV's estimated linear velocity */
+    float  vz;                     /*!< UAV's estimated linear velocity */
 
     uint32_t    num_frames;			  /*!< streamed frame index */
     
@@ -122,5 +122,17 @@ enum {
   MYKONOS_COM_WATCHDOG_MASK   = 1 << 30, /*!< Communication Watchdog : (1) com problem, (0) Com is ok */
   MYKONOS_EMERGENCY_MASK      = 1 << 31  /*!< Emergency landing : (0) no emergency, (1) emergency */
 };
+
+enum {
+  NO_CONTROL_MODE = 0,          // Doing nothing
+  MYKONOS_UPDATE_CONTROL_MODE,  // Mykonos software update reception (update is done next run)
+                                // After event completion, card should power off
+  PIC_UPDATE_CONTROL_MODE,      // Mykonos pic software update reception (update is done next run)
+                                // After event completion, card should power off
+  LOGS_GET_CONTROL_MODE,        // Send previous run's logs
+  CFG_GET_CONTROL_MODE,         // Send activ configuration
+  ACK_CONTROL_MODE              // Reset command mask in navdata
+};
+
 
 #endif

@@ -54,17 +54,20 @@ int main(int argc, char** argv)
     if (serial.receive(recv_buffer, recv_bytes)) {
       protocol_handler.serial2network(recv_buffer, recv_bytes, send_buffer, send_bytes);
       if (send_bytes != 0) {
-        cout << "asking network to send packet" << endl;
+        //cout << "asking network to send packet" << endl;
         if (!network.send(send_buffer, send_bytes)) // TODO: may discard!
-          cerr << "outbound network message of " << send_bytes << " dropped" << endl;
+          ;//cerr << "outbound network message of " << send_bytes << " dropped" << endl;
       }
     }
     
-    /*if (network.receive(recv_buffer, recv_bytes)) {
+    if (network.receive(recv_buffer, recv_bytes)) {
       protocol_handler.network2serial(recv_buffer, recv_bytes, send_buffer, send_bytes);
-      if (!serial.send(send_buffer, send_bytes))
-        cerr << "outbound serial message of " << send_bytes << " dropped" << endl;
-    }*/
+      if (send_bytes != 0) {
+        //cout << "asking serial to send packet of " << send_bytes << " bytes" << endl;
+        if (!serial.send(send_buffer, send_bytes)) 
+          ;//cerr << "outbound serial message of " << send_bytes << " dropped" << endl;
+      }
+    }
     
     usleep(1000); // TODO: tune
   }

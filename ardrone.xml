@@ -29,7 +29,7 @@
       <field type="float" name="battery">Battery level of drone</field>
       <field type="float" name="phi">?</field>
       <field type="float" name="psi">?</field>
-      <field type="float" name="alpha">?</field>
+      <field type="float" name="theta">?</field>
       <field type="float" name="altitude">?</field>
       <field type="float" name="vx">?</field>
       <field type="float" name="vy">?</field>
